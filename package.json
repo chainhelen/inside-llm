@@ -1,0 +1,24 @@
+{
+  "name": "inside-llm",
+  "version": "1.0.0",
+  "type": "module",
+  "private": false,
+  "description": "模型拆解室 · Inside an LLM — a bilingual interactive path from tensors to Apple Neural Engine",
+  "license": "MIT",
+  "author": "chainhelen",
+  "scripts": {
+    "dev": "node scripts/serve.mjs",
+    "build": "node scripts/build.mjs",
+    "test": "node --test tests/*.test.mjs",
+    "check": "node --check src/app.js && node --check src/scenes.js",
+    "test:browser": "node scripts/test-browser.cjs",
+    "format": "prettier --write index.html style.css src scripts tests README.md docs package.json"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "devDependencies": {
+    "playwright": "1.56.1",
+    "prettier": "3.6.2"
+  }
+}

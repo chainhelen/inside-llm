@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta
+      name="description"
+      content="hacking.pub 的游戏与交互学习实验。Games and interactive learning experiments."
+    />
+    <title>动手看看 · Interactive experiments</title>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: #f6f3eb;
+        color: #30372f;
+        font-family: system-ui, sans-serif;
+      }
+      main {
+        max-width: 1100px;
+        margin: auto;
+        padding: 70px 25px;
+      }
+      a {
+        color: inherit;
+      }
+      header {
+        border-bottom: 1px solid #c9cdbd;
+        padding-bottom: 35px;
+      }
+      header > a {
+        font-size: 15px;
+        text-decoration: none;
+      }
+      h1 {
+        font-size: 48px;
+        margin: 40px 0 10px;
+        letter-spacing: -1px;
+      }
+      p {
+        line-height: 1.8;
+        margin: 12px 0;
+        color: #606a58;
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 22px;
+        margin-top: 40px;
+      }
+      .item {
+        display: flex;
+        flex-direction: column;
+        min-height: 280px;
+        border: 1px solid #737c67;
+        border-radius: 10px;
+        padding: 26px;
+        background: #fffcf6;
+        text-decoration: none;
+        box-shadow: 3px 3px 0 #bec7b0;
+        transition: transform 0.15s;
+      }
+      .item:hover {
+        transform: translateY(-4px);
+      }
+      .item:focus-visible {
+        outline: 3px solid #456b91;
+        outline-offset: 5px;
+      }
+      .item:first-child {
+        background: #dce8c5;
+      }
+      .num {
+        font: 14px monospace;
+        letter-spacing: 2px;
+      }
+      .item h2 {
+        font-size: 25px;
+        margin: 25px 0 6px;
+      }
+      .en {
+        font-size: 16px;
+      }
+      .item p {
+        font-size: 15px;
+        flex: 1;
+      }
+      .tag {
+        font: 12px monospace;
+        letter-spacing: 1px;
+        margin-top: 18px;
+      }
+      footer {
+        margin-top: 50px;
+        font-size: 14px;
+        color: #64705b;
+      }
+      @media (max-width: 700px) {
+        main {
+          padding: 35px 20px;
+        }
+        h1 {
+          font-size: 36px;
+        }
+        .grid {
+          grid-template-columns: 1fr;
+        }
+        .item {
+          min-height: 230px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <header>
+        <a href="/">hacking.pub</a>
+        <h1>动手看看。</h1>
+        <p>
+          Interactive experiments<br />有些东西，拖一拖、点一点，就明白了。<br />Some
+          ideas make more sense when you can move them.
+        </p>
+      </header>
+      <section class="grid" aria-label="Games and tutorials">
+        <a class="item" href="inside-llm/"
+          ><span class="num">01 / LEARN</span>
+          <h2>模型拆解室</h2>
+          <span class="en">Inside an LLM</span>
+          <p>
+            从 token 到 ANE，40 步看懂语言模型如何计算。<br />Forty interactive
+            steps from a token to the Neural Engine.
+          </p>
+          <span class="tag">中文 / EN · INTERACTIVE</span></a
+        ><a class="item" href="neural-atelier/"
+          ><span class="num">02 / BUILD</span>
+          <h2>Neural Atelier</h2>
+          <span class="en">神经网络工坊</span>
+          <p>
+            通过连接计算模块，探索神经网络的结构。<br />Explore neural networks
+            by wiring computation modules.
+          </p>
+          <span class="tag">3D · LOGIC</span></a
+        ><a class="item" href="manufactoria/"
+          ><span class="num">03 / PLAY</span>
+          <h2>Manufactoria</h2>
+          <span class="en">自动化逻辑谜题</span>
+          <p>
+            用传送带与规则搭出一台解题机器。<br />Build a machine out of
+            conveyor belts and rules.
+          </p>
+          <span class="tag">PUZZLE · CLASSIC</span></a
+        >
+      </section>
+      <footer>chainhelen · hacking.pub</footer>
+    </main>
+  </body>
+</html>

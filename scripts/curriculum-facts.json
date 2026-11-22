@@ -1,0 +1,390 @@
+[
+  {
+    "id": "tokens",
+    "title": {
+      "zh": "一个 token 有多大？",
+      "en": "What is inside a token?"
+    },
+    "steps": [
+      {
+        "title": {
+          "zh": "从文字到 ID",
+          "en": "Text to IDs"
+        },
+        "facts": "模型先把文字分成token。示例来自实际分词：你好，世界！→[109266,3709,96748,6115]，四个token不是按汉字数计数。交互选中一个token。"
+      },
+      {
+        "title": {
+          "zh": "ID 换成一行数",
+          "en": "An ID becomes a row"
+        },
+        "facts": "embedding是查表，词表248320行，每行2048个数。token ID只决定取哪一行，不是拿ID做矩阵乘法。2048是特征维度，不是2048层。"
+      },
+      {
+        "title": {
+          "zh": "一行，还是很多行？",
+          "en": "One row or many?"
+        },
+        "facts": "T个token拼成X[T,2048]。每行对应token，每列是特征位置。prefill一次处理多行；使用缓存的decode通常新进一行。当前教学生成器未使用缓存，生成每步重新计算整段历史。"
+      }
+    ]
+  },
+  {
+    "id": "matrix",
+    "title": {
+      "zh": "矩阵到底怎么乘？",
+      "en": "How matrices multiply"
+    },
+    "steps": [
+      {
+        "title": {
+          "zh": "两边的 2048 对上",
+          "en": "Match the inner dimensions"
+        },
+        "facts": "始终使用行向量约定：input[1,2048]×W[2048,512]→gate[1,512]。教学小矩阵x[1,2]×W[2,3]→y[1,3]。输出3是三个投影输出位置，不是三个token；实际含义由训练学习。"
+      },
+      {
+        "title": {
+          "zh": "代码为什么按行算？",
+          "en": "Why does code read rows?"
+        },
+        "facts": "存储矩阵通常[输出,输入]，实现每次读取一行权重与input点积，得到一个输出数。这与图中的input×W一致；图的W使用逻辑[输入,输出]，不在图中偷换方向。project(input)传参位置不代表乘法顺序。"
+      },
+      {
+        "title": {
+          "zh": "6 bit 存的是压缩码",
+          "en": "Six bits store a code"
+        },
+        "facts": "affine量化w≈code×scale+bias。bits=6给64个整数码0..63；group_size=64表示每64个权重共享scale和bias。二者都是64但含义不同。权重可压缩常驻，需要时解码；若全部常驻f32就失去相应权重带宽收益。"
+      }
+    ]
+  },
+  {
+    "id": "norm",
+    "title": {
+      "zh": "四个公式，各管一件事",
+      "en": "Four formulas, four jobs"
+    },
+    "steps": [
+      {
+        "title": {
+          "zh": "RMSNorm 分两步看",
+          "en": "Read RMSNorm in two steps"
+        },
+        "facts": "r=sqrt(mean(x²)+epsilon)，先每个数除同一个r，再每个位置乘训练得到gamma[i]。gamma来自norm.weight，与反量化scale不是同一个东西。epsilon避免分母太小，不是权重。"
+      },
+      {
+        "title": {
+          "zh": "sigmoid 与 SiLU",
+          "en": "Sigmoid and SiLU"
+        },
+        "facts": "sigmoid(g)=1/(1+exp(-g))，把一个数映射到0..1，g=0得0.5。SiLU(g)=g×sigmoid(g)，对每个元素单独计算；负数不一定被清零。没有矩阵乘法，也没有一整行共用一个sigmoid。"
+      },
+      {
+        "title": {
+          "zh": "softmax 才是分配比例",
+          "en": "Softmax distributes a total"
+        },
+        "facts": "softmax整组计算exp(x_i)/sum(exp(x_j))，输出非负且总和1。RMSNorm保留正负特征、不要求和1。attention用Q/K分数的softmax比例混合V，MoE也用路由概率。"
+      }
+    ]
+  },
+  {
+    "id": "heads",
+    "title": {
+      "zh": "多头为什么变成三维？",
+      "en": "Where the third axis comes from"
+    },
+    "steps": [
+      {
+        "title": {
+          "zh": "先投影，再拆头",
+          "en": "Project first, split second"
+        },
+        "facts": "本模型full attention：X[T,2048]×W_q[2048,8192]得到qg[T,8192]。每头512位置前256为Q后256为gate，16头。因此Q[T,16,256]，gate同形状。不是直接把input2048切成16头。"
+      },
+      {
+        "title": {
+          "zh": "转一下，看见三个轴",
+          "en": "Turn the tensor, see three axes"
+        },
+        "facts": "教学小模型Q[T,2,4]：T页/行token，2个head，头内4个特征。实际内存可以只是扁平Vec，三个维度是索引方式。一次选定token和head，拿到一条[1,256]；固定head看所有token是[T,256]。"
+      },
+      {
+        "title": {
+          "zh": "Q 的头比 K/V 多",
+          "en": "More Q heads than KV heads"
+        },
+        "facts": "实际full Q16头，K/V各2头，每头256。W_k和W_v逻辑[2048,512]。Q头0..7用KV头0，Q头8..15用KV头1，这是分组查询GQA。linear attention是另一套维度Q/K16×128，V32×128，不要混用。"
+      }
+    ]
+  },
+  {
+    "id": "attention",
+    "title": {
+      "zh": "从打分到读出信息",
+      "en": "From scores to information"
+    },
+    "steps": [
+      {
+        "title": {
+          "zh": "每头归一化，然后旋转",
+          "en": "Normalize each head, then rotate"
+        },
+        "facts": "full attention Q/K每头RMSNorm含学习gamma，再RoPE。每头256只旋转前64个位置，共32对，配对i与i+32。角度pos/theta^(2i/64)，theta=10000000；改变方向不改变这一对长度。V不做这里的RoPE。"
+      },
+      {
+        "title": {
+          "zh": "只能看见当前和过去",
+          "en": "Only the present and the past"
+        },
+        "facts": "每个Q头计算Q[T,256]×Kᵀ[256,T]/sqrt(256)，得到[T,T]分数。因果限制j<=当前token位置；未来位置在softmax中权重为0。"
+      },
+      {
+        "title": {
+          "zh": "按比例取 V",
+          "en": "Read V in proportion"
+        },
+        "facts": "softmax按当前token的一整行可见分数算概率，再概率[T,T]×V[T,256]。每个输出位置是历史token对应V位置的加权和。"
+      },
+      {
+        "title": {
+          "zh": "拼接，门控，投影",
+          "en": "Join, gate, project"
+        },
+        "facts": "16个头结果拼成[T,4096]。逐元素乘之前qg拆出的sigmoid(gates)，然后W_o[4096,2048]得到attention_output[T,2048]。最后才与原始x做残差h=x+attention_output。原版Transformer没有这个额外输出gate。"
+      }
+    ]
+  },
+  {
+    "id": "linear",
+    "title": {
+      "zh": "把历史写进一个状态",
+      "en": "Write history into a state"
+    },
+    "steps": [
+      {
+        "title": {
+          "zh": "先混合附近四个 token",
+          "en": "Mix the nearest four tokens"
+        },
+        "facts": "linear attention Q2048,K2048,V4096合计8192通道，causal depthwise Conv1d kernel4各通道看当前和前三个token，缺失历史补0，再SiLU。Q/K各16头128维，V32头128维。"
+      },
+      {
+        "title": {
+          "zh": "每个头有自己的 S",
+          "en": "Each head has its own S"
+        },
+        "facts": "每个V头h有状态S_h[128,128]。当前token更新这个head的S，下一个token接着使用同一个head的S；切换head不会共享或重置别的头。教学只展示2×2状态。"
+      },
+      {
+        "title": {
+          "zh": "衰减，再写入差额",
+          "en": "Decay, then write a correction"
+        },
+        "facts": "按逻辑行向量、S[key,value]约定：S_decay=alpha*S_old；prediction=k*S_decay；delta=beta*(v-prediction)；S_new=S_decay+outer(k,delta)；readout=q*S_new。a经参数变换控制衰减alpha，b经sigmoid得写入beta。不要把readout当成新的S。"
+      },
+      {
+        "title": {
+          "zh": "读出和保留走两条路",
+          "en": "Readout and state take different paths"
+        },
+        "facts": "readout每头128，32头拼成4096；每头RMSNorm与SiLU(z)逐元素相乘，再out_proj4096→2048，再加残差。S留给下一个token。a衰减、b写入、z输出，三个gate不是同一个位置。"
+      }
+    ]
+  },
+  {
+    "id": "router",
+    "title": {
+      "zh": "选专家，不是运行专家",
+      "en": "Choose experts before running them"
+    },
+    "steps": [
+      {
+        "title": {
+          "zh": "attention 之后再归一化",
+          "en": "Normalize after attention"
+        },
+        "facts": "h=x+attention_output，h经post_attention_layernorm得到moe_input[1,2048]。moe_input只是FFN输入，名字不代表MoE已经算完。"
+      },
+      {
+        "title": {
+          "zh": "256 次小打分",
+          "en": "256 small scores"
+        },
+        "facts": "router逻辑W[2048,256]，input[1,2048]×W→256个logits。每个专家只有一条2048权重参与路由点积；并没有执行256个专家自己的三张大矩阵。"
+      },
+      {
+        "title": {
+          "zh": "留下 Top 8",
+          "en": "Keep the top eight"
+        },
+        "facts": "本模型选top8，选中概率再归一化为8个scalar weights，总和1。routing.routes中每个token一份expert_ids与weights；chunks_exact(2048)按token取输入，zip把这行与其路由结果配对。"
+      }
+    ]
+  },
+  {
+    "id": "experts",
+    "title": {
+      "zh": "三个矩阵怎样变成 FFN",
+      "en": "Three matrices make an FFN"
+    },
+    "steps": [
+      {
+        "title": {
+          "zh": "gate 和 up 各算一次",
+          "en": "Two projections: gate and up"
+        },
+        "facts": "单个选中专家：input[1,2048]×W_gate[2048,512]→gate[1,512]，同一个input×W_up[2048,512]→up[1,512]。512来自该模型配置的专家中间宽度。"
+      },
+      {
+        "title": {
+          "zh": "相同位置相乘",
+          "en": "Multiply matching positions"
+        },
+        "facts": "hidden[i]=SiLU(gate[i])*up[i]，512个位置独立。然后hidden[1,512]×W_down[512,2048]→output[1,2048]。round_mul只是两个f32数相乘，project才计算矩阵向量投影。"
+      },
+      {
+        "title": {
+          "zh": "8 份输出合成一份",
+          "en": "Merge eight outputs"
+        },
+        "facts": "每个专家有2048个输出。combined[i]=sum_j(router_weight[j]*expert_output[j][i])。实现先遍历专家再遍历位置，结果与先按位置收集8个数相同。route.weight是标量，不是专家矩阵。"
+      },
+      {
+        "title": {
+          "zh": "共享专家多一个总开关",
+          "en": "A shared expert has one extra gate"
+        },
+        "facts": "共享专家拥有独立gate/up/down三矩阵，加第四张W_shared_gate[2048,1]。原始moe_input×它→一个logit，经sigmoid得一个系数s，整条共享raw_output每个位置都乘s。MoE=routed+shared，layer_output=h+MoE。"
+      }
+    ]
+  },
+  {
+    "id": "generation",
+    "title": {
+      "zh": "一个 token 变成一句话",
+      "en": "From one token to generated text"
+    },
+    "steps": [
+      {
+        "title": {
+          "zh": "把一层接四十次",
+          "en": "Connect forty layers"
+        },
+        "facts": "每层attention→残差→norm→MoE FFN→残差，输出仍[T,2048]。该模型40层，其中30个linear attention、10个full attention。两个残差不能混加到norm后的向量上。"
+      },
+      {
+        "title": {
+          "zh": "给词表里的每项打分",
+          "en": "Score every vocabulary entry"
+        },
+        "facts": "最后一层后final RMSNorm，从最后一个token位置取[1,2048]，乘lm_head逻辑[2048,248320]得到logits[1,248320]。分数最高ID是greedy选择，logits无需softmax也能比大小。"
+      },
+      {
+        "title": {
+          "zh": "追加，再运行一次",
+          "en": "Append and run again"
+        },
+        "facts": "输出新ID，追加到输入，重复到EOS或max-new-tokens。当前未做KV/state缓存，每次完整计算扩大的历史。示例首个ID198为换行，终端看起来像没输出。原始续写没有chat template或tool调用协议。"
+      }
+    ]
+  },
+  {
+    "id": "gpu",
+    "title": {
+      "zh": "第一次把计算交给 GPU",
+      "en": "Your first GPU dispatch"
+    },
+    "steps": [
+      {
+        "title": {
+          "zh": "一个位置，一个线程",
+          "en": "One position, one thread"
+        },
+        "facts": "Metal add_vectors函数：out[id]=left[id]+right[id]。CPU编译.metal库、找到函数，创建compute pipeline；调用add时上传数据绑定buffer再dispatch。"
+      },
+      {
+        "title": {
+          "zh": "为什么传两个 MTLSize？",
+          "en": "Why two MTLSize values?"
+        },
+        "facts": "dispatchThreads的第一个MTLSize是总grid尺寸，第二个是每threadgroup尺寸。SIMD组是硬件执行小组，threadgroup可含多个SIMD组。threadExecutionWidth查询pipeline的SIMD宽度，不是总线程数。图示数字是示意不保证固定硬件值。"
+      },
+      {
+        "title": {
+          "zh": "lm_head 换到设备上",
+          "en": "Move the vocabulary projection"
+        },
+        "facts": "把lm_head矩阵计算搬到GPU，host仍读词表、选ID与控制生成。实际速度还取决于数据搬运、编译、dispatch次数。Metal路径明确GPU执行；统一内存不等于没有内存带宽或拷贝开销。"
+      }
+    ]
+  },
+  {
+    "id": "ane",
+    "title": {
+      "zh": "从 Rust 到 ANE",
+      "en": "From Rust to the Neural Engine"
+    },
+    "steps": [
+      {
+        "title": {
+          "zh": "公开调度和直接调用",
+          "en": "Public scheduling versus direct calls"
+        },
+        "facts": "Core ML的cpuAndNeuralEngine允许CPU和ANE，不保证ANE-only；MLX主要CPU/GPU且不是同一个调度开关。本项目后续用私有AppleNeuralEngine.framework直接提交ANE请求，失败报错，不回退CPU。"
+      },
+      {
+        "title": {
+          "zh": "三个文件，各有工作",
+          "en": "Three files, three jobs"
+        },
+        "facts": "ane_ops.rs生成MIL运算图，ane_runtime.rs通过持久worker提交，native/ane_runtime.m桥接私有framework、编译/复用程序、IOSurface传数据、evaluateWithModel(request)执行。MIL描述怎么算，.m负责调用，不是.m里写全部张量公式。"
+      },
+      {
+        "title": {
+          "zh": "权重是输入，程序复用",
+          "en": "Weights change; programs are reused"
+        },
+        "facts": "矩阵权重作为运行时输入，同形状程序可用于不同专家。IOSurface每行fp16按64字节对齐，此实现做padding；逻辑矩阵形状不因此变成8×8。不要把硬件对齐解释成所有矩阵必须8×8。"
+      },
+      {
+        "title": {
+          "zh": "完整链路的设备边界",
+          "en": "The boundary of the full ANE path"
+        },
+        "facts": "当前完整40层模型的投影、norm、conv、RoPE旋转、两种attention、FFN、gate、加权/残差和lm_head都提交ANE。CPU留分词、读文件反量化格式准备、embedding查表、sin/cos常量、索引搬运、topK/argmax与生成控制。不等于整个程序不使用CPU。"
+      }
+    ]
+  },
+  {
+    "id": "precision",
+    "title": {
+      "zh": "跑通之后，还要查什么？",
+      "en": "What to check after it runs"
+    },
+    "steps": [
+      {
+        "title": {
+          "zh": "同一个公式，不同舍入",
+          "en": "Same formula, different rounding"
+        },
+        "facts": "fp16可表示数比fp32少。SiLU(g)=g*sigmoid(g)=(g/2)*(1+tanh(g/2))数学相等，但设备上的误差可不同。本次tanh形式效果更好，不代表每种硬件都更准或更快。"
+      },
+      {
+        "title": {
+          "zh": "归一化真的踩过坑",
+          "en": "A real normalization failure"
+        },
+        "facts": "稳定缩放：s=max(maxabs(x),sqrt(eps)); small=x/s, ratio=sqrt(eps)/s; output=small/sqrt(mean(small²)+ratio²)。本次ANE单图出现中间量异常，拆两次ANE请求落地small/ratio后通过。内部编译原因未证实；CPU只转发，不算norm。"
+      },
+      {
+        "title": {
+          "zh": "输出文本不是精度证明",
+          "en": "Text output is not a precision test"
+        },
+        "facts": "M5 Pro、模型qwen3.6-35b-a3b-oq4e-mtp、输入你好，世界！；完整词表logits相对L2差2.85%，首步top8相同，两步CPU输出\\n2，ANE输出\\n在。两步36280次请求，是教学实现不是速度优化结论。下一步应测更多输入，再做缓存与算子融合。"
+      }
+    ]
+  }
+]
