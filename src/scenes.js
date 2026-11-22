@@ -179,7 +179,7 @@ export function draw(id, step, values, lang = "zh") {
     const ids = [109266, 3709, 96748, 6115],
       tokens = ["你好", "，", "世界", "！"];
     if (step === 0) {
-      s += tx(380, 55, L("你好，世界！", "Hello, world! (Chinese input)"), 30);
+      s += tx(380, 55, "你好，世界！", 30);
       s += tx(
         380,
         85,
@@ -245,19 +245,14 @@ export function draw(id, step, values, lang = "zh") {
       );
       formula = `embedding[${ids[v]}] → x [1,2048]`;
     } else {
-      const rows = Array.from({ length: v }, (_, i) => [
-        `t${i}`,
-        ".12",
-        "−.8",
-        ".34",
-        "…",
-      ]);
+      const rows = Array.from({ length: v }, () => [".12", "−.8", ".34", "…"]);
       s += matrix(220, 100, rows, {
         cell: 60,
         label: "X",
         shape: `[${v}, 2048]`,
       });
-      s += tx(150, 215, L("token 轴", "token axis"), 15);
+      for (let i = 0; i < v; i++) s += tx(185, 135 + i * 60, `t${i}`, 15);
+      s += tx(100, 215, L("token 轴", "token axis"), 15);
       s += tx(
         370,
         60,
@@ -853,11 +848,13 @@ export function draw(id, step, values, lang = "zh") {
       );
       formula = "h → post_attention_layernorm → moe_input";
     } else {
+      s += `<path d="M250 48 L250 402" stroke="#9ba68e" stroke-dasharray="4 4"/>`;
+      s += tx(250, 37, "0", 13);
       scores.forEach((score, i) => {
         const y = 60 + i * 57,
           selected = routes.some((r) => r.id === i);
         s += tx(65, y + 20, `E${i}`, 15);
-        s += `<rect x="105" y="${y}" width="${(score + 3) * 42}" height="32" rx="4" fill="${selected && step === 2 ? C.green : C.purple}" stroke="#8f9a82"/>`;
+        s += `<rect x="${250 + Math.min(0, score) * 35}" y="${y}" width="${Math.max(1, Math.abs(score) * 35)}" height="32" rx="4" fill="${selected && step === 2 ? C.green : C.purple}" stroke="#8f9a82"/>`;
         s += tx(475, y + 22, f(score), 15);
         if (step === 2)
           s += tx(

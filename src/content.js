@@ -180,8 +180,8 @@ export const curriculum = [
           en: "Turn the tensor, see three axes",
         },
         text: {
-          zh: "教学小模型中的 Q[T,2,4] 包含三个轴，分别表示 T 页或行对应的 token、2 个 head 以及每个头内的 4 个特征。实际内存里它完全可以只存成一段连续的扁平 Vec，三个维度本质上是访问数据时的索引方式。放到真实模型里，同时选定一个 token 和一个 head 会拿到一条 [1,256] 向量，固定一个 head 查看全部 token 则得到 [T,256]。",
-          en: "In the small teaching model, Q[T,2,4] has three axes representing T token pages or rows, 2 heads, and 4 features per head. In memory this can still be stored as one flat contiguous Vec, because the three dimensions define an indexing layout for reading values. In the full model, picking one token and one head returns a [1,256] vector, while fixing one head across all tokens gives a [T,256] matrix.",
+          zh: "教学小模型中的 Q[T,2,4] 包含三个轴，每张表有 T 行 token，前后两张表对应 2 个 head，每行有 4 列特征。实际内存里它完全可以只存成一段连续的扁平 Vec，三个维度本质上是访问数据时的索引方式。放到真实模型里，同时选定一个 token 和一个 head 会拿到一条 [1,256] 向量，固定一个 head 查看全部 token 则得到 [T,256]。",
+          en: "In the small teaching model, Q[T,2,4] has T token rows on each sheet, two sheets for the two heads, and four feature columns per row. In memory this can still be stored as one flat contiguous Vec, because the three dimensions define an indexing layout for reading values. In the full model, picking one token and one head returns a [1,256] vector, while fixing one head across all tokens gives a [T,256] matrix.",
         },
         takeaway: {
           zh: "三维张量在内存里可以是扁平数组，三个轴决定了按 token 和 head 切片的方式。",
