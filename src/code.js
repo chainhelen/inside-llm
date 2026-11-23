@@ -1,3 +1,4 @@
+import { advancedCode, advancedQuizzes } from "./advanced.js";
 // Short teaching equivalents, not copy-and-paste replacements for production code.
 export const code = {
   tokens: [
@@ -375,3 +376,6 @@ export const quizzes = {
     correct: 0,
   },
 };
+
+Object.assign(code, advancedCode);
+Object.assign(quizzes, advancedQuizzes);

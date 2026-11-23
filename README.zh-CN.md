@@ -6,7 +6,7 @@
 
 **[打开教程 / Open the tutorial](https://hacking.pub/games/inside-llm/)**
 
-12 章、40 步，中英文可切换。拖动滑杆会重新计算教学示例，而不是只换一张图片。包含代码对照、搜索、公式速查、随堂检查、学习进度和手机布局。
+16 章、56 步，中英文可切换。拖动滑杆会重新计算教学示例，而不是只换一张图片。包含代码对照、搜索、公式速查、随堂检查、学习进度和手机布局。
 
 An interactive, bilingual guide from tensor shapes to a complete ANE inference path. Twelve chapters and forty steps, with live numerical examples, teaching code, search, a reference sheet, quick checks, and local progress.
 
@@ -35,7 +35,7 @@ All assets use relative paths and lessons use hash routes, so a subdirectory dep
 - 图中一律采用 `input [T,H] × W [H,O]`。存储权重的 `[O,H]` 布局另行说明。
 - 浏览器运行小型 JavaScript 计算，不运行完整模型或使用访问者的 ANE。
 - 代码页是对应 Rust 实现的精简教学伪代码，并非可直接替换的源文件。
-- 当前完整 ANE 路径的张量算术经私有 AppleNeuralEngine 框架执行；CPU 仍负责分词、权重准备、索引与选择等主机工作。生成循环未启用 KV / recurrent-state 缓存。
+- 早期完整 ANE 教学路径的张量算术经私有 AppleNeuralEngine 框架执行；CPU 仍负责分词、权重准备、索引与选择等主机工作。该早期版本未启用缓存；新对照实现已加入请求独立的 KV / recurrent state 缓存和 GPU 常驻路径，第 13～16 章继续讲解。
 - 实机记录：M5 Pro，输入“你好，世界！”。全词表 logits 与 CPU 的相对 L2 差约 2.85%；第一步 Top 8 相同，但两步输出不同。此记录不等于精度上界或性能保证。
 
 Small JavaScript examples illustrate the operations; the site does not execute the full checkpoint. Shapes belong to the checkpoint named above. Code panels are teaching equivalents, not drop-in Rust source. Hardware results are one measured case, not an accuracy bound or performance guarantee.
@@ -44,7 +44,7 @@ Small JavaScript examples illustrate the operations; the site does not execute t
 
 | 文件                            | 用途 / Purpose                                                  |
 | ------------------------------- | --------------------------------------------------------------- |
-| `src/content.js`                | 40 步双语内容 / Bilingual lesson content                        |
+| `src/content.js`                | 基础双语内容 / Bilingual lesson content                         |
 | `src/scenes.js`                 | SVG 交互图与控件 / Interactive diagrams and controls            |
 | `src/math.js`                   | 小矩阵、门控、路由与状态计算 / Numerical teaching examples      |
 | `src/code.js`                   | 代码对照与检查题 / Teaching code and quick checks               |
@@ -70,3 +70,5 @@ The curriculum follows actual learner questions from building a Rust inference i
 ## License
 
 MIT — © 2026 chainhelen. Referenced projects retain their own licenses. This repository contains no model weights or copied third-party implementation files.
+
+新增四章涵盖缓存与 PD 流水线、FFN 切分与合批、GPU 常驻与词表切分、推测验证。常驻后端使用 Syrix 生成流程与 Kapitsa Metal 算子。交互示意和真实测量分别标注，详见[更新记录](docs/UPDATES-2026-11-24.md)。

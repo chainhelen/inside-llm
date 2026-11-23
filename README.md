@@ -4,9 +4,9 @@ English | [简体中文](README.zh-CN.md)
 
 **[Open the interactive tutorial](https://hacking.pub/games/inside-llm/)**
 
-Follow a token through matrices, attention, expert routing, text generation, and finally GPU and Apple Neural Engine execution.
+Follow a token through matrices, attention, expert routing, text generation, GPU and Apple Neural Engine execution, caching, parallel scheduling, and speculative verification.
 
-Twelve chapters and forty steps, with live numerical examples, teaching code, search, a formula reference, quick checks, and saved progress. Moving a slider recalculates the example. The site opens in English; readers can switch to Chinese, and their choice is remembered.
+Sixteen chapters and fifty-six steps, with live numerical examples, teaching code, search, a formula reference, quick checks, and saved progress. Moving a slider recalculates the example. The site opens in English; readers can switch to Chinese, and their choice is remembered.
 
 ## Run locally
 
@@ -31,20 +31,29 @@ All assets use relative paths and lessons use hash routes, so subdirectories suc
 - Model dimensions refer to `qwen3.6-35b-a3b-oq4e-mtp`, not every LLM.
 - Diagrams consistently use `input [T,H] × W [H,O]`. The stored `[O,H]` weight layout is explained separately.
 - Code panels are simplified equivalents of the Rust implementation, not drop-in source files.
-- The full ANE implementation submits model tensor arithmetic through the private AppleNeuralEngine framework. The CPU still handles tokenization, weight preparation, indexing, selection, and control flow. Generation does not yet use KV or recurrent-state caching.
-- One M5 Pro measurement found a 2.85% relative L2 difference between ANE and CPU logits. The first top eight IDs matched, but two-token generation diverged. This is a measured example, not an accuracy bound or performance guarantee. See the [validation record](docs/VALIDATION.md).
+- The early full-ANE teaching implementation submits model tensor arithmetic through the private AppleNeuralEngine framework. The CPU still handles tokenization, weight preparation, indexing, selection, and control flow. That baseline recomputes history. The newer comparison implementation adds per-request state caching and a resident GPU path; these are separate backends.
+- One historical M5 Pro measurement found a 2.85% relative L2 difference between ANE and CPU logits. The first top eight IDs matched, but two-token generation diverged. This is a measured example, not an accuracy bound or performance guarantee. See the [validation record](docs/VALIDATION.md).
+
+## New advanced lessons
+
+Chapters 13–16 cover KV and recurrent state, prefill/decode overlap, split and batched FFNs, resident Metal buffers, hybrid vocabulary projection, and speculative verification. Sliders distinguish toy work estimates from recorded hardware measurements. See the [November 24 update and evidence boundaries](docs/UPDATES-2026-11-24.md).
+
+The resident backend combines Syrix generation/control with Kapitsa Metal operators, encoding, and loading. The site illustrates that integration; it does not claim those kernels as an independent implementation.
 
 ## Source map
 
-| File                            | Purpose                                    |
-| ------------------------------- | ------------------------------------------ |
-| `src/content.js`                | Bilingual lesson content                   |
-| `src/scenes.js`                 | SVG diagrams and interactive controls      |
-| `src/math.js`                   | Numerical teaching examples                |
-| `src/code.js`                   | Teaching code and quick checks             |
-| `src/app.js`                    | Navigation, search, language, and progress |
-| `scripts/curriculum-facts.json` | Original editorial fact sheet              |
-| `tests/`                        | Math, curriculum, and control checks       |
+| File                            | Purpose                                                |
+| ------------------------------- | ------------------------------------------------------ |
+| `src/content.js`                | Bilingual lesson content                               |
+| `src/scenes.js`                 | SVG diagrams and interactive controls                  |
+| `src/advanced-content.js`       | New bilingual advanced lessons                         |
+| `src/advanced.js`               | Advanced diagrams, controls, teaching code, and checks |
+| `src/advanced-math.js`          | Cache, scheduling, partition, and rounding examples    |
+| `src/math.js`                   | Numerical teaching examples                            |
+| `src/code.js`                   | Teaching code and quick checks                         |
+| `src/app.js`                    | Navigation, search, language, and progress             |
+| `scripts/curriculum-facts.json` | Original editorial fact sheet                          |
+| `tests/`                        | Math, curriculum, and control checks                   |
 
 ## References and editorial process
 

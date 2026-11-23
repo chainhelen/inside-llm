@@ -3,11 +3,11 @@ import assert from "node:assert/strict";
 import { curriculum } from "../src/content.js";
 import { draw, controls } from "../src/scenes.js";
 import { code, quizzes } from "../src/code.js";
-test("all forty bilingual steps have a diagram and matching code", () => {
-  assert.equal(curriculum.length, 12);
+test("all bilingual steps have a diagram and matching code", () => {
+  assert.equal(curriculum.length, 16);
   assert.equal(
     curriculum.reduce((s, c) => s + c.steps.length, 0),
-    40,
+    56,
   );
   for (const c of curriculum) {
     assert.equal(code[c.id][1].length, c.steps.length);

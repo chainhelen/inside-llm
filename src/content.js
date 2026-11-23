@@ -1,3 +1,4 @@
+import { advancedLessons } from "./advanced-content.js";
 // Bilingual copy drafted with Gemini CLI and technically reviewed.
 export const curriculum = [
   {
@@ -41,8 +42,8 @@ export const curriculum = [
           en: "One row or many?",
         },
         text: {
-          zh: "把 T 个 token 查出的向量依次排在一起，就组成输入矩阵 X[T, 2048]，每行对应一个 token，每列对应一个特征位置。常见推理里，prefill 一次处理多行，带缓存的 decode 通常每次只新进一行。当前教学生成器未开启缓存，每步都会重新计算整段历史。",
-          en: "Stacking the rows for T tokens forms the input matrix X[T, 2048], where each row is one token and each column is one feature position. In typical inference, prefill processes many rows at once and cached decode usually processes one new row per step. This teaching generator does not use a cache, so each generation step recomputes the full history.",
+          zh: "把 T 个 token 查出的向量依次排在一起，就组成输入矩阵 X[T, 2048]，每行对应一个 token，每列对应一个特征位置。常见推理里，prefill 一次处理多行，带缓存的 decode 通常每次只新进一行。前面的早期教学生成器未开启缓存，每步都会重新计算整段历史。第 13 章开始看新增的缓存实现。",
+          en: "Stacking the rows for T tokens forms the input matrix X[T, 2048], where each row is one token and each column is one feature position. In typical inference, prefill processes many rows at once and cached decode usually processes one new row per step. The early teaching generator recomputes the full history without a cache. Chapter 13 introduces the newer cached implementation.",
         },
         takeaway: {
           zh: "X[T, 2048] 按行排列 T 个 token；无缓存实现每次生成都会重算全部历史行。",
@@ -491,8 +492,8 @@ export const curriculum = [
           en: "Append and run again",
         },
         text: {
-          zh: "每次选出新的 token ID 后，程序会把它追加到输入序列末尾再重新跑一遍，循环直到生成 EOS 或达到 max-new-tokens 上限。当前教学版没有实现 KV 或 state 缓存，所以每一步都要完整重算不断加长的历史。示例里首个生成的 ID 198 对应换行符，在终端里看起来像没有输出；此外这种原始续写也不包含 chat template 或 tool 调用协议。",
-          en: "Each newly chosen token ID is appended to the input sequence and the model runs again until hitting EOS or max-new-tokens. This teaching implementation has no KV or state cache, so every step recomputes the full growing history. In the example, the first generated ID 198 is a newline, which can look like no output in a terminal, and raw continuation includes no chat template or tool-calling protocol.",
+          zh: "每次选出新的 token ID 后，程序会把它追加到输入序列末尾再重新跑一遍，循环直到生成 EOS 或达到 max-new-tokens 上限。这里展示的早期教学版没有实现 KV 或 state 缓存，所以每一步都要完整重算不断加长的历史。示例里首个生成的 ID 198 对应换行符，在终端里看起来像没有输出；此外这种原始续写也不包含 chat template 或 tool 调用协议。",
+          en: "Each newly chosen token ID is appended to the input sequence and the model runs again until hitting EOS or max-new-tokens. This early teaching implementation has no KV or state cache, so every step recomputes the full growing history. In the example, the first generated ID 198 is a newline, which can look like no output in a terminal, and raw continuation includes no chat template or tool-calling protocol.",
         },
         takeaway: {
           zh: "生成循环不断追加新 ID 重算历史直至停止条件，原始续写不含对话模板或工具协议，首个换行 ID 容易被忽略。",
@@ -658,14 +659,16 @@ export const curriculum = [
           en: "Text output is not a precision test",
         },
         text: {
-          zh: "在 M5 Pro 上用 qwen3.6-35b-a3b-oq4e-mtp 输入“你好，世界！”实测，完整词表 logits 相对 L2 误差为 2.85%，首步 top8 相同，但两步后 CPU 输出 \\n2、ANE 输出 \\n在。这两步共发起 36280 次 ANE 请求，当前只是教学实现，不能当成速度优化结论。下一步需要先覆盖更多输入做精度验证，再着手缓存与算子融合。",
-          en: 'On M5 Pro with qwen3.6-35b-a3b-oq4e-mtp and input "你好，世界！", full-vocabulary logits show a 2.85% relative L2 difference and identical first-step top 8, yet two-step output diverges: \\n2 on CPU versus \\n在 on ANE. Those two steps issue 36280 ANE requests, reflecting a teaching implementation rather than a speed benchmark. Next steps are testing more inputs first, then adding caching and operator fusion.',
+          zh: "在 M5 Pro 上用 qwen3.6-35b-a3b-oq4e-mtp 输入“你好，世界！”实测，完整词表 logits 相对 L2 误差为 2.85%，首步 top8 相同，但两步后 CPU 输出 \\n2、ANE 输出 \\n在。这两步共发起 36280 次 ANE 请求，当前只是教学实现，不能当成速度优化结论。这是早期纯 ANE 版本的记录；新增的缓存、并行与 GPU 常驻实现从第 13 章继续，仍需独立验证精度。",
+          en: 'On M5 Pro with qwen3.6-35b-a3b-oq4e-mtp and input "你好，世界！", full-vocabulary logits show a 2.85% relative L2 difference and identical first-step top 8, yet two-step output diverges: \\n2 on CPU versus \\n在 on ANE. Those two steps issue 36280 ANE requests, reflecting a teaching implementation rather than a speed benchmark. This is the early pure-ANE snapshot. Chapters 13–16 cover newer caching, parallelism, and resident GPU work, each requiring its own accuracy checks.',
         },
         takeaway: {
-          zh: "文本偶尔一致或分叉都不能替代 logits 误差检验，36280 次请求的教学链路还需先扩测输入再做缓存与融合。",
-          en: "Generated text alone cannot prove numerical accuracy; this 36280-request teaching path needs broader input tests before caching and operator fusion.",
+          zh: "文本偶尔一致或分叉都不能替代 logits 误差检验，新增优化也要针对自己的路径验证数值。",
+          en: "Generated text alone cannot prove numerical accuracy; each newer optimized path needs its own numerical checks.",
         },
       },
     ],
   },
 ];
+
+curriculum.push(...advancedLessons);

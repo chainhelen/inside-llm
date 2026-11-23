@@ -18,21 +18,9 @@ const base = process.env.SITE_URL || "http://127.0.0.1:5174/";
   });
   const errors = [];
   page.on("pageerror", (e) => errors.push(e.message));
-  const ids = [
-      "tokens",
-      "matrix",
-      "norm",
-      "heads",
-      "attention",
-      "linear",
-      "router",
-      "experts",
-      "generation",
-      "gpu",
-      "ane",
-      "precision",
-    ],
-    counts = [3, 3, 3, 3, 4, 4, 3, 4, 3, 3, 4, 3];
+  const { curriculum } = await import("../src/content.js");
+  const ids = curriculum.map((c) => c.id);
+  const counts = curriculum.map((c) => c.steps.length);
   let checked = 0;
   await page.goto(base, { waitUntil: "networkidle" });
   assert.equal(await page.locator("html").getAttribute("lang"), "en");

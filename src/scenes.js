@@ -1,3 +1,4 @@
+import { advancedIds, advancedControls, drawAdvanced } from "./advanced.js";
 import {
   sigmoid,
   silu,
@@ -66,6 +67,7 @@ const range = (zh, en, min, max, value, step = 1) => ({
   step,
 });
 export function controls(id, step) {
+  if (advancedIds.includes(id)) return advancedControls(id, step);
   switch (id) {
     case "tokens":
       return [
@@ -169,6 +171,17 @@ export function controls(id, step) {
   }
 }
 export function draw(id, step, values, lang = "zh") {
+  if (advancedIds.includes(id))
+    return drawAdvanced(id, step, values, lang, {
+      tx,
+      box,
+      line,
+      matrix,
+      path,
+      C,
+      f,
+      escape,
+    });
   const L = (a, b) => (lang === "zh" ? a : b);
   const v = values[0],
     v2 = values[1] ?? 0;
