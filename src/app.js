@@ -15,8 +15,8 @@ const safeGet = (k, f) => {
       localStorage.setItem(k, JSON.stringify(v));
     } catch {}
   };
-let lang = safeGet("inside-llm-language", "zh");
-if (!["zh", "en"].includes(lang)) lang = "zh";
+let lang = safeGet("inside-llm-language", "en");
+if (!["zh", "en"].includes(lang)) lang = "en";
 let completed = safeGet("inside-llm-completed", []);
 if (!Array.isArray(completed)) completed = [];
 completed = completed.filter((x) => curriculum.some((c) => c.id === x));

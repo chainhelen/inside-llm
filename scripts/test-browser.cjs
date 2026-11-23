@@ -35,6 +35,10 @@ const base = process.env.SITE_URL || "http://127.0.0.1:5174/";
     counts = [3, 3, 3, 3, 4, 4, 3, 4, 3, 3, 4, 3];
   let checked = 0;
   await page.goto(base, { waitUntil: "networkidle" });
+  assert.equal(await page.locator("html").getAttribute("lang"), "en");
+  await page.getByRole("button", { name: "切换到中文" }).click();
+  await page.reload();
+  assert.equal(await page.locator("html").getAttribute("lang"), "zh-CN");
   for (const lang of ["zh", "en"]) {
     if (lang === "en")
       await page.getByRole("button", { name: "Switch to English" }).click();

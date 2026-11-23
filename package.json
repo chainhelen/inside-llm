@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "type": "module",
   "private": false,
-  "description": "模型拆解室 · Inside an LLM — a bilingual interactive path from tensors to Apple Neural Engine",
+  "description": "Inside an LLM — interactive lessons from tensors to Apple Neural Engine",
   "license": "MIT",
   "author": "chainhelen",
   "scripts": {
